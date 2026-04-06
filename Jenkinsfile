@@ -21,6 +21,7 @@ pipeline {
             steps {
                 sh 'git --version'
                 sh 'java -version'
+                sh 'curl --version'
                 sh 'docker --version'
                 sh 'docker compose version'
             }
@@ -48,12 +49,45 @@ pipeline {
                 sh './gradlew clean test bootJar'
             }
         }
+
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker compose build app'
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                sh 'docker compose up -d app'
+            }
+        }
+
+        stage('Smoke Test') {
+            steps {
+                sh '''
+                    for i in $(seq 1 30); do
+                      if curl -fsS -X POST http://localhost:8080/orders \
+                        -H "Content-Type: text/plain" \
+                        -d "jenkins-smoke-test" | grep -q "Order sent to Kafka!"; then
+                        exit 0
+                      fi
+                      sleep 2
+                    done
+                    echo "Application did not become ready in time"
+                    docker compose logs app || true
+                    exit 1
+                '''
+            }
+        }
     }
 
     post {
         always {
             junit allowEmptyResults: true, testResults: 'build/test-results/test/*.xml'
             archiveArtifacts allowEmptyArchive: true, artifacts: 'build/libs/*.jar'
+        }
+        unsuccessful {
+            sh 'docker compose logs app || true'
             sh 'docker compose down || true'
         }
     }
