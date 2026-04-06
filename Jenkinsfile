@@ -1,14 +1,28 @@
 pipeline {
     agent any
 
+    options {
+        skipDefaultCheckout(true)
+    }
+
     environment {
         GRADLE_OPTS = '-Dorg.gradle.daemon=false'
+        PATH = "/usr/local/bin:/opt/homebrew/bin:/Applications/Docker.app/Contents/Resources/bin:/usr/bin:/bin:/usr/sbin:/sbin:${env.PATH}"
     }
 
     stages {
         stage('Checkout') {
             steps {
                 checkout scm
+            }
+        }
+
+        stage('Verify Tooling') {
+            steps {
+                sh 'git --version'
+                sh 'java -version'
+                sh 'docker --version'
+                sh 'docker compose version'
             }
         }
 
