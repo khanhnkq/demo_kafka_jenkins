@@ -66,7 +66,7 @@ pipeline {
             steps {
                 sh '''
                     for i in $(seq 1 30); do
-                      if curl -fsS -X POST http://localhost:8080/orders \
+                      if curl -fsS -X POST http://localhost:8081/orders \
                         -H "Content-Type: text/plain" \
                         -d "jenkins-smoke-test" | grep -q "Order sent to Kafka!"; then
                         exit 0
